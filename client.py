@@ -96,7 +96,7 @@ class Client(Thread):
                         self.chat_text.insert(END, "{0} : You are in channel {1}\n".format(self.nickname, self.your_channel))
                 else:
                     self.display_error("Friend {0} not found !! Check the list in the server side !!".format(data[10:]))
-            elif command == "t":
+            if command == "t":
                 if data[10:] != "":
                     channel_name_text = data[10:].split(",")
                     if channel_name_text[0] == self.your_channel:
@@ -109,7 +109,7 @@ class Client(Thread):
                         self.chat_text.config(yscrollcommand = self.chat_text_scrollbar.set)
                         self.chat_text.see(END)
                         self.chat_text.config(state = "disabled")
-            elif command == "c":
+            if command == "c":
                 if data[10:17] == "success":
                     self.nickname = data[19:]
                     self.nickname_label["text"] = "Welcome {0} !!".format(self.nickname)
@@ -121,11 +121,22 @@ class Client(Thread):
                     self.display_info("Nickname changed sucessfully !!")
                 else:
                     self.display_error("Nickname already used by someone else !!")
-            elif command == "l":
+            if command == "l":
                 if data[10:] != "":
                     channels = data[10:].split("|*SEPARATOR*|")
+                    self.list_channel = []
                     for channel in channels:
                         self.list_channel.append(channel)
+            if command == "n":
+                if data[10:] != "":
+                    status_channel = data[10:].split("=>")
+                    if status_channel[0] == "fail":
+                        self.showerror("Channel {0} already exist !!".format(status_channel[1]))
+                    elif status_channel[0] == "success":
+                        self.your_channel = status_channel[1]
+                        self.display_info("Channel {0} created and switched to him !!".format(status_channel[1]))
+                        self.list_all_channel()
+                        self.connection_with_channel(self.your_channel)
 
     def quit(self):
         self.s.close()
@@ -190,7 +201,7 @@ class Client(Thread):
         if channel_name != "":
             self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.s.connect((self.host, self.server_port))
-            msg = 'command=n|{0}=>{1}'.format(self.nickname, channel_name)
+            msg = 'command=n|{0},{1}:{2}=>{3}'.format(self.nickname, self.your_ip, self.your_port, channel_name)
             msg_byte = bytes(msg.encode('utf-8'))
             self.s.send(msg_byte)
             self.s.close()
