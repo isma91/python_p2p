@@ -15,7 +15,7 @@ class App(Thread):
         self.app_name = "P2P Chat Server"
         self.version = "1.0.0"
         self.author =  "isma91"
-        self.list_user = {}
+        #self.list_user = {}
         self.list_channel = {"default" : [], "first_year" : [], "second_year" : []}
         self.your_host = ''
         self.your_port = 9998
@@ -70,7 +70,7 @@ class App(Thread):
         name_and_ip = name_and_ip_channel[0].split(',')
         name = name_and_ip[0]
         ip_port = name_and_ip[1]
-        self.list_user[name] = ip_port
+        #self.list_user[name] = ip_port
         self.list_channel[channel].append("{0}=>{1}".format(name, ip_port))
         for user_list in self.list_channel[channel]:
             user_list = user_list.split("=>")
@@ -145,6 +145,14 @@ class App(Thread):
                         name_ip_list = user_name_ip_list.split("=>")
                         if name_ip_list[0] == name:
                             self.list_channel[channel_name_list_list].remove(user_name_ip_list)
+                            text_list = ""
+                            for user_list_list_list in self.list_channel[channel_name_list_list]:
+                                text_list = text_list + user_list_list_list + "|*SEPARATOR*|"
+                            msg_list = "command=f|{0}~{1}".format(channel_name_list_list, text_list)
+                            for user_list_list_list in self.list_channel[channel_name_list_list]:
+                                user_list_list_list_list = user_list_list_list.split("=>")
+                                user_name_ip_list_list = user_list_list_list_list[1].split(":")
+                                self.send_msg(user_name_ip_list_list[0], int(user_name_ip_list_list[1]), msg_list)
                             self.list_channel[channel_name].append("{0}=>{1}".format(name, ip_port))
                             break
             for channel_name_list, user_list in self.list_channel.items():
@@ -156,8 +164,12 @@ class App(Thread):
                         for user_name_ip in user_list:
                             text = text + user_name_ip + "|*SEPARATOR*|"
                         msg = "command=f|{0}~{1}".format(channel_name, text)
+            for user_list in self.list_channel[channel_name]:
+                user_list_list = user_list.split("=>")
+                user_list_list_name = user_list_list[0]
+                user_list_list_ip_port = user_list_list[1].split(":")
+                self.send_msg(user_list_list_ip_port[0], int(user_list_list_ip_port[1]), msg)
         ip_port = ip_port.split(":")
-        msg_byte = bytes(msg.encode('utf-8'))
         ip = ip_port[0]
         port = int(ip_port[1])
         self.update_list()
