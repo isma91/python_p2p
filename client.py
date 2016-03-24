@@ -40,6 +40,12 @@ class Client(Thread):
         msg_byte = bytes(msg.encode('utf-8'))
         self.s.send(msg_byte)
         self.s.close()
+
+        msg = 'command=f|{0},{1}:{2}=>{3}'.format(self.nickname, self.your_ip, self.your_port, self.your_channel)
+        msg_byte = bytes(msg.encode('utf-8'))
+        tmp_s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        tmp_s.connect((self.host, self.server_port))
+        tmp_s.send(msg_byte)
         
         self.start()
         self.menu()
@@ -66,8 +72,14 @@ class Client(Thread):
                         self.display_error("Channel {0} not found !!".format(channel_ip_port_name[0]))
                     else:
                         self.your_channel = channel_ip_port_name[0]
+                        self.list_friend_channel = {}
                         list_friend = channel_ip_port_name[1].split("|*SEPARATOR*|")
-                        print(list_friend)
+                        for user_list in list_friend:
+                            if user_list == "":
+                                list_friend.remove("")
+                        for user_list in list_friend:
+                            name_ip = user_list.split("=>")
+                            self.list_friend_channel[name_ip[0]] = name_ip[1]
                     """friend_name_connection = channel_ip_port_name[1]
                     self.friend_channel
                     ip_port = channel_ip_port_name[0].split(":")
@@ -91,6 +103,11 @@ class Client(Thread):
                 if data[10:17] == "success":
                     self.nickname = data[19:]
                     self.nickname_label["text"] = "Welcome {0} !!".format(self.nickname)
+                    for friend_name, friend_ip_port in self.list_friend_channel.items():
+                        if friend_ip_port == "{0}:{1}".format(self.your_ip, self.your_port):
+                            del self.list_friend_channel[friend_name]
+                            break
+                    self.list_friend_channel[self.nickname] = "{0}:{1}".format(self.your_ip, self.your_port)
                     self.display_info("Nickname changed sucessfully !!")
                 else:
                     self.display_error("Nickname already used by someone else !!")
@@ -99,6 +116,12 @@ class Client(Thread):
         self.s.close()
         print("quitting client")
         root.destroy()
+
+    def user_list_current_channel(self):
+        text = ""
+        for friend_name, friend_ip_port in self.list_friend_channel.items():
+            text = text + friend_name + "\n"
+        self.display_info("Here his the user list of {0} :\n{1}".format(self.your_channel, text))
 
     def send_msg(self, msg):
         msg = msg.strip()
@@ -140,6 +163,7 @@ class Client(Thread):
 
         menu_file = Menu(menubar, tearoff = 0)
         menu_file.add_command(label = "Get your ip", command = self.get_ip)
+        menu_file.add_command(label = "Get current channel user list", command = self.user_list_current_channel)
         menu_file.add_separator()
         menu_file.add_command(label = "Quit", command = lambda : self.quit())
         menubar.add_cascade(label = "File", menu = menu_file)
@@ -153,7 +177,7 @@ class Client(Thread):
     def change_nickname(self, nickname):
         nickname = nickname.strip()
         if nickname != "":
-            msg = 'command=c|{0},{1}:{2}'.format(nickname, self.your_ip, self.your_port)
+            msg = 'command=c|{0},{1}:{2}=>{3}'.format(nickname, self.your_ip, self.your_port, self.your_channel)
             msg_byte = bytes(msg.encode('utf-8'))
             self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.s.connect((self.host, self.server_port))
