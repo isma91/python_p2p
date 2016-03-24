@@ -69,10 +69,16 @@ class App(Thread):
         ip_port = name_and_ip[1]
         self.list_user[name] = ip_port
         self.list_channel[channel].append("{0}=>{1}".format(name, ip_port))
+        for user_list in self.list_channel[channel]:
+            user_list = user_list.split("=>")
+            if name != user_list[0]:
+                self.send_user_list_channel(user_list[1], channel)
         self.update_list(label)
 
-    def change_list(self, label, name_and_ip):
-        name_and_ip = name_and_ip.split(",")
+    def change_list(self, label, name_and_ip_channel):
+        name_and_ip_channel = name_and_ip_channel.split("=>")
+        channel = name_and_ip_channel[1]
+        name_and_ip = name_and_ip_channel[0].split(',')
         name = name_and_ip[0]
         ip_port = name_and_ip[1]
         ip_and_port = ip_port.split(":")
@@ -96,6 +102,10 @@ class App(Thread):
         tmp_s.send(msg_byte)
         tmp_s.close()
         self.update_list(label)
+        #self.send_user_list_channel(ip_port, channel)
+        for user_list in self.list_channel[channel]:
+            user_list = user_list.split("=>")
+            self.send_user_list_channel(user_list[1], channel)
 
     def update_list(self, label):
         label["text"] = ""
@@ -116,6 +126,26 @@ class App(Thread):
         name_and_ip = channel[0].split(",")
         name = name_and_ip[0]
         ip_port = name_and_ip[1]
+        msg = "command=f|{0}~no".format(channel_name)
+        for channel_name_list, user_list in self.list_channel.items():
+            if channel_name_list == channel_name:
+                if len(user_list) == 0:
+                    msg = "command=f|{0}~empty".format(channel_name)
+                else:
+                    text = ""
+                    for user_name_ip in user_list:
+                        text = text + user_name_ip + "|*SEPARATOR*|"
+                    msg = "command=f|{0}~{1}".format(channel_name, text)
+        ip_port = ip_port.split(":")
+        msg_byte = bytes(msg.encode('utf-8'))
+        ip = ip_port[0]
+        port = int(ip_port[1])
+        tmp_s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        tmp_s.connect((ip, port))
+        tmp_s.send(msg_byte)
+        tmp_s.close()
+
+    def send_user_list_channel(self, ip_port, channel_name):
         msg = "command=f|{0}~no".format(channel_name)
         for channel_name_list, user_list in self.list_channel.items():
             if channel_name_list == channel_name:
