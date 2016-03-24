@@ -18,7 +18,7 @@ class Client(Thread):
         self.version = "1.0.0"
         self.author =  "isma91"
         self.nickname = "user" + str(random.randint(0, 123456789))
-        self.your_port = random.randint(1000, 9998)
+        self.your_port = random.randint(1000, 9997)
 
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.s.connect(('google.com', 80))
@@ -28,35 +28,45 @@ class Client(Thread):
         self.host = ''
         self.your_channel = "default"
         self.list_friend_channel = {}
-        self.server_port = 9999
+        self.list_channel = []
+        self.server_port = 9998
 
-        self.chat_friend_ip = ""
-        self.chat_friend_port = 0000
-        self.chat_friend_name = ""
-        
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.s.connect((self.host, self.server_port))
         msg = 'command=i|{0},{1}:{2}=>{3}'.format(self.nickname, self.your_ip, self.your_port, self.your_channel)
         msg_byte = bytes(msg.encode('utf-8'))
         self.s.send(msg_byte)
+        self.s.shutdown(socket.SHUT_RDWR)
         self.s.close()
 
-        msg = 'command=f|{0},{1}:{2}=>{3}'.format(self.nickname, self.your_ip, self.your_port, self.your_channel)
-        msg_byte = bytes(msg.encode('utf-8'))
-        tmp_s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        tmp_s.connect((self.host, self.server_port))
-        tmp_s.send(msg_byte)
+        self.client_labelframe = LabelFrame(root, text = "Client side")
         
         self.start()
         self.menu()
         self.client_side()
+        self.client_labelframe["text"] = "Channel {0}".format(self.your_channel)
 
     def run(self):
-        self.tmp_s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.tmp_s.bind((self.host, self.your_port))
-        self.tmp_s.listen(5)
+        self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.s.connect((self.host, self.server_port))
+        msg = 'command=f|{0},{1}:{2}=>{3}'.format(self.nickname, self.your_ip, self.your_port, self.your_channel)
+        msg_byte = bytes(msg.encode('utf-8'))
+        self.s.send(msg_byte)
+        self.s.shutdown(socket.SHUT_RDWR)
+        self.s.close()
+
+        self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        msg = "command=l|" + str(self.your_ip) + ":" + str(self.your_port)
+        self.s.connect((self.host, self.server_port))
+        msg_byte = bytes(msg.encode('utf-8'))
+        self.s.send(msg_byte)
+        self.s.close()
+
+        self.tmp_tmp_s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.tmp_tmp_s.bind((self.host, self.your_port))
+        self.tmp_tmp_s.listen(5)
         while True:
-            conn, addr = self.tmp_s.accept()
+            conn, addr = self.tmp_tmp_s.accept()
             response = conn.recv(255)
             data = response.decode()
             command = data[8:9]
@@ -67,11 +77,13 @@ class Client(Thread):
                     friend_ip_port = channel_ip_port_name[1].split('|*SEPARATOR*|')
                     if channel_ip_port_name[1] == "empty":
                         self.your_channel = channel_ip_port_name[0]
+                        self.client_labelframe["text"] = "Channel {0}".format(self.your_channel)
                         self.display_info('No user found in {0}'.format(self.your_channel))
                     elif channel_ip_port_name[1] == "no":
                         self.display_error("Channel {0} not found !!".format(channel_ip_port_name[0]))
                     else:
                         self.your_channel = channel_ip_port_name[0]
+                        self.client_labelframe["text"] = "Channel {0}".format(self.your_channel)
                         self.list_friend_channel = {}
                         list_friend = channel_ip_port_name[1].split("|*SEPARATOR*|")
                         for user_list in list_friend:
@@ -80,17 +92,6 @@ class Client(Thread):
                         for user_list in list_friend:
                             name_ip = user_list.split("=>")
                             self.list_friend_channel[name_ip[0]] = name_ip[1]
-                    """friend_name_connection = channel_ip_port_name[1]
-                    self.friend_channel
-                    ip_port = channel_ip_port_name[0].split(":")
-                    ip_friend = ip_port[0]
-                    port_friend = ip_port[1]
-                    self.chat_friend_name = friend_name_connection
-                    self.chat_friend_ip = ip_friend
-                    self.chat_friend_port = int(port_friend)
-                    self.chat_label["text"] = "Chat with {0} here !!".format(self.chat_friend_name)
-                    self.chat_label.pack()
-                    self.display_info("Successfully connected with {0} !!\n ip : {1} port : {2}".format(friend_name_connection, ip_friend, port_friend))"""
                 else:
                     self.display_error("Friend {0} not found !! Check the list in the server side !!".format(data[10:]))
             elif command == "t":
@@ -111,6 +112,11 @@ class Client(Thread):
                     self.display_info("Nickname changed sucessfully !!")
                 else:
                     self.display_error("Nickname already used by someone else !!")
+            elif command == "l":
+                if data[10:] != "":
+                    channels = data[10:].split("|*SEPARATOR*|")
+                    for channel in channels:
+                        self.list_channel.append(channel)
 
     def quit(self):
         self.s.close()
@@ -123,16 +129,33 @@ class Client(Thread):
             text = text + friend_name + "\n"
         self.display_info("Here his the user list of {0} :\n{1}".format(self.your_channel, text))
 
+    def list_all_channel(self):
+        self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        msg = "command=l|" + str(self.your_ip) + ":" + str(self.your_port)
+        self.s.connect((self.host, self.server_port))
+        msg_byte = bytes(msg.encode('utf-8'))
+        self.s.send(msg_byte)
+        self.s.close()
+        text = ""
+        for channel in self.list_channel:
+            text = text + channel + "\n"
+        self.display_info("Here is all the channel available :\n{0}".format(text))
+
     def send_msg(self, msg):
         msg = msg.strip()
         if msg != "":
-            text = "command=t|{0}=>{1}".format(self.nickname, msg)
+            text = "command=t|{0},{1}=>{2}".format(self.your_channel, self.nickname, msg)
             self.s.close()
-            self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.s.connect((self.host, self.chat_friend_port))
-            msg_byte = bytes(text.encode('utf-8'))
-            self.s.sendto(msg_byte, (self.chat_friend_ip, self.chat_friend_port))
-            self.s.close()
+            for friend_name, friend_ip_port in self.list_friend_channel.items():
+                if friend_name != self.nickname:
+                    friend_ip_port = friend_ip_port.split(":")
+                    friend_ip = friend_ip_port[0]
+                    friend_port = int(friend_ip_port[1])
+                    self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    self.s.connect((self.host, friend_port))
+                    msg_byte = bytes(text.encode('utf-8'))
+                    self.s.sendto(msg_byte, (friend_ip, friend_port))
+                    self.s.close()
             self.chat_text.insert(END, "{0} : {1}\n".format(self.nickname, msg))
 
     def display_error(self, error_message):
@@ -162,8 +185,9 @@ class Client(Thread):
         menubar = Menu(root)
 
         menu_file = Menu(menubar, tearoff = 0)
-        menu_file.add_command(label = "Get your ip", command = self.get_ip)
-        menu_file.add_command(label = "Get current channel user list", command = self.user_list_current_channel)
+        menu_file.add_command(label = "Get your ip", command = lambda : self.get_ip())
+        menu_file.add_command(label = "Get current channel user list", command = lambda : self.user_list_current_channel())
+        menu_file.add_command(label = "List all channel", command = lambda : self.list_all_channel())
         menu_file.add_separator()
         menu_file.add_command(label = "Quit", command = lambda : self.quit())
         menubar.add_cascade(label = "File", menu = menu_file)
@@ -192,34 +216,34 @@ class Client(Thread):
             tmp_s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             tmp_s.connect((self.host, self.server_port))
             tmp_s.send(msg_byte)
+            tmp_s.close()
 
     def client_side(self):
-        client_labelframe = LabelFrame(root, text = "Client side")
-        client_labelframe.pack(fill = "both", expand = "yes")
+        self.client_labelframe.pack(fill = "both", expand = "yes")
 
         create_channel_value = StringVar()
-        create_channel_input = Entry(client_labelframe, textvariable = create_channel_value).pack()
-        create_channel_button = Button(client_labelframe, text = "Create another channel", command = lambda : self.create_channel(create_channel_value.get())).pack()
+        create_channel_input = Entry(self.client_labelframe, textvariable = create_channel_value).pack()
+        create_channel_button = Button(self.client_labelframe, text = "Create another channel", command = lambda : self.create_channel(create_channel_value.get())).pack()
 
         change_nickname_value = StringVar()
-        change_nickname_input = Entry(client_labelframe, textvariable = change_nickname_value).pack()
-        change_nickname_button = Button(client_labelframe, text = "Change your nickname", command = lambda : self.change_nickname(change_nickname_value.get())).pack()
+        change_nickname_input = Entry(self.client_labelframe, textvariable = change_nickname_value).pack()
+        change_nickname_button = Button(self.client_labelframe, text = "Change your nickname", command = lambda : self.change_nickname(change_nickname_value.get())).pack()
         
-        self.nickname_label = Label(client_labelframe, text = "Welcome {0} !!".format(self.nickname))
+        self.nickname_label = Label(self.client_labelframe, text = "Welcome {0} !!".format(self.nickname))
         self.nickname_label.pack()
 
-        channel_to_chat_label = Label(client_labelframe, text = "Write your channel to communicate with them").pack()
+        channel_to_chat_label = Label(self.client_labelframe, text = "Write the channel to communicate with them").pack()
         channel_to_chat_value = StringVar()
-        channel_to_chat_input = Entry(client_labelframe, textvariable = channel_to_chat_value).pack()
-        channel_to_chat_button = Button(client_labelframe, text = "Connection", command = lambda : self.connection_with_channel(channel_to_chat_value.get())).pack()
+        channel_to_chat_input = Entry(self.client_labelframe, textvariable = channel_to_chat_value).pack()
+        channel_to_chat_button = Button(self.client_labelframe, text = "Connection", command = lambda : self.connection_with_channel(channel_to_chat_value.get())).pack()
         
-        self.chat_text = Text(client_labelframe)
+        self.chat_text = Text(self.client_labelframe)
         self.chat_text.pack(fill = "both", expand = "yes")
-        self.chat_label = Label(client_labelframe, text = "")
+        self.chat_label = Label(self.client_labelframe, text = "")
         self.chat_label.pack()
         chat_value = StringVar()
-        chat_input = Entry(client_labelframe, textvariable = chat_value).pack()
-        chat_button = Button(client_labelframe, text = "Send", command = lambda : self.send_msg(chat_value.get())).pack()
+        chat_input = Entry(self.client_labelframe, textvariable = chat_value).pack()
+        chat_button = Button(self.client_labelframe, text = "Send", command = lambda : self.send_msg(chat_value.get())).pack()
 
 client = Client()
 root.mainloop()
