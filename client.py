@@ -79,6 +79,7 @@ class Client(Thread):
                         self.your_channel = channel_ip_port_name[0]
                         self.client_labelframe["text"] = "Channel {0}".format(self.your_channel)
                         self.display_info('No user found in {0}'.format(self.your_channel))
+                        self.chat_text.insert(END, "{0} : You are in channel {1}\n".format(self.nickname, self.your_channel))
                     elif channel_ip_port_name[1] == "no":
                         self.display_error("Channel {0} not found !!".format(channel_ip_port_name[0]))
                     else:
@@ -92,14 +93,22 @@ class Client(Thread):
                         for user_list in list_friend:
                             name_ip = user_list.split("=>")
                             self.list_friend_channel[name_ip[0]] = name_ip[1]
+                        self.chat_text.insert(END, "{0} : You are in channel {1}\n".format(self.nickname, self.your_channel))
                 else:
                     self.display_error("Friend {0} not found !! Check the list in the server side !!".format(data[10:]))
             elif command == "t":
                 if data[10:] != "":
-                    name_text = data[10:].split("=>")
-                    recv_name = name_text[0]
-                    recv_text = name_text[1]
-                    self.chat_text.insert(END, "{0} : {1}\n".format(recv_name, recv_text))
+                    channel_name_text = data[10:].split(",")
+                    if channel_name_text[0] == self.your_channel:
+                        name_text = channel_name_text[1].split("=>")
+                        recv_name = name_text[0]
+                        recv_text = name_text[1]
+                        self.chat_text.config(state = "normal")
+                        self.chat_text.insert(END, "{0} : {1}\n".format(recv_name, recv_text))
+                        self.chat_text_scrollbar.config(command = self.chat_text.yview)
+                        self.chat_text.config(yscrollcommand = self.chat_text_scrollbar.set)
+                        self.chat_text.see(END)
+                        self.chat_text.config(state = "disabled")
             elif command == "c":
                 if data[10:17] == "success":
                     self.nickname = data[19:]
@@ -156,7 +165,12 @@ class Client(Thread):
                     msg_byte = bytes(text.encode('utf-8'))
                     self.s.sendto(msg_byte, (friend_ip, friend_port))
                     self.s.close()
+            self.chat_text.config(state = "normal")
             self.chat_text.insert(END, "{0} : {1}\n".format(self.nickname, msg))
+            self.chat_text_scrollbar.config(command = self.chat_text.yview)
+            self.chat_text.config(yscrollcommand = self.chat_text_scrollbar.set)
+            self.chat_text.see(END)
+            self.chat_text.config(state = "disabled")
 
     def display_error(self, error_message):
         messagebox.showerror("Some trouble here !!", error_message)
@@ -237,8 +251,12 @@ class Client(Thread):
         channel_to_chat_input = Entry(self.client_labelframe, textvariable = channel_to_chat_value).pack()
         channel_to_chat_button = Button(self.client_labelframe, text = "Connection", command = lambda : self.connection_with_channel(channel_to_chat_value.get())).pack()
         
-        self.chat_text = Text(self.client_labelframe)
+        self.chat_text_scrollbar = Scrollbar(self.client_labelframe)
+        self.chat_text_scrollbar.pack(side = RIGHT, fill = Y)
+        self.chat_text = Text(self.client_labelframe, state = "disabled")
         self.chat_text.pack(fill = "both", expand = "yes")
+        self.chat_text_scrollbar.config(command = self.chat_text.yview)
+        self.chat_text.config(yscrollcommand = self.chat_text_scrollbar.set)
         self.chat_label = Label(self.client_labelframe, text = "")
         self.chat_label.pack()
         chat_value = StringVar()
