@@ -15,7 +15,6 @@ class App(Thread):
         self.app_name = "P2P Chat Server"
         self.version = "1.0.0"
         self.author =  "isma91"
-        #self.list_user = {}
         self.list_channel = {"default" : [], "first_year" : [], "second_year" : []}
         self.your_host = ''
         self.your_port = 9998
@@ -63,6 +62,8 @@ class App(Thread):
                         self.find_and_send_channel(response.decode()[10:])
                     if command == "l":
                         self.send_list_channel(response.decode()[10:])
+                    if command == "n":
+                        self.create_channel(response.decode()[10:])
 
     def add_list(self, name_and_ip_channel):
         name_and_ip_channel = name_and_ip_channel.split("=>")
@@ -70,7 +71,6 @@ class App(Thread):
         name_and_ip = name_and_ip_channel[0].split(',')
         name = name_and_ip[0]
         ip_port = name_and_ip[1]
-        #self.list_user[name] = ip_port
         self.list_channel[channel].append("{0}=>{1}".format(name, ip_port))
         for user_list in self.list_channel[channel]:
             user_list = user_list.split("=>")
@@ -199,6 +199,50 @@ class App(Thread):
         for channel_name, user_list in self.list_channel.items():
             text = text + channel_name + "|*SEPARATOR*|"
         self.send_msg(ip, port, text)
+
+    def create_channel(self, name_ip_port_channel):
+        name_ip_port_channel = name_ip_port_channel.split("=>")
+        new_channel = name_ip_port_channel[1]
+        name_ip_port = name_ip_port_channel[0].split(",")
+        name = name_ip_port[0]
+        ip_port = name_ip_port[1].split(":")
+        ip = ip_port[0]
+        port = int(ip_port[1])
+        duplicate_channel = False
+        for channel_name, user_list in self.list_channel.items():
+            if channel_name == new_channel:
+                msg = "command=n|{0}=>{1}".format("fail", new_channel)
+                duplicate_channel = True
+                break
+        if duplicate_channel == False:
+            for channel_name, user_list in self.list_channel.items():
+                if len(user_list) != 0:
+                    for list_user in user_list:
+                        user_name_ip_port = list_user.split("=>")
+                        user_name = user_name_ip_port[0]
+                        user_ip_port = user_name_ip_port[1].split(":")
+                        user_ip = user_ip_port[0]
+                        user_port = user_ip_port[1]
+                        if user_name == name:
+                            self.old_channel = channel_name
+                            self.list_channel[channel_name].remove(list_user)
+                            #self.send_user_list_channel("{0}:{1}".format(ip, port), channel_name)
+            self.list_channel[new_channel] = ["{0}=>{1}:{2}".format(name, ip, port)]
+            for channel_name_list, user_list_list_list in self.list_channel.items():
+                if len(user_list_list_list) != 0:
+                    for list_list_user in user_list_list_list:
+                        user_name_ip_port = list_list_user.split("=>")
+                        user_name = user_name_ip_port[0]
+                        user_ip_port = user_name_ip_port[1].split(":")
+                        user_ip = user_ip_port[0]
+                        user_port = user_ip_port[1]
+                        self.send_list_channel("{0}:{1}".format(ip, port))
+                if channel_name_list == self.old_channel:
+                    user_list_list = list_list_user.split("=>")
+                    self.send_user_list_channel(user_list_list[1], self.old_channel)
+            msg = "command=n|{0}=>{1}".format("success", new_channel)
+            self.send_msg(ip, port, msg)
+            self.update_list()
 
     def send_msg(self, ip, port, msg):
         msg_byte = bytes(msg.encode('utf-8'))
