@@ -9,7 +9,7 @@ root = Tk()
 root.geometry('{}x{}'.format(int(root.winfo_screenwidth() / 2), int(root.winfo_screenheight() / 2)))
 root.wm_title("Python P2P Server Side")
 
-class App(Thread):
+class Server(Thread):
     def __init__(self):
         Thread.__init__(self)
         self.app_name = "P2P Chat Server"
@@ -267,5 +267,5 @@ class App(Thread):
         tmp_s.shutdown(socket.SHUT_RDWR)
         tmp_s.close()
 
-app = App()
+server = Server()
 root.mainloop()
