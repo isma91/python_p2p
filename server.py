@@ -29,7 +29,20 @@ class App(Thread):
         root.destroy()
 
     def list(self):
-        print(self.list_channel)
+        text = ""
+        for channel_name, list_user in self.list_channel.items():
+            if len(list_user) == 0:
+                text = text + "Channel {0} is empty\n".format(channel_name)
+            else:
+                text = text + "Channel {0} : {1} user(s)\n".format(channel_name, len(list_user))
+                for user_name_ip_port in list_user:
+                    user_name_ip_port = user_name_ip_port.split("=>")
+                    user_name = user_name_ip_port[0]
+                    user_ip_port = user_name_ip_port[1].split(":")
+                    user_ip = user_ip_port[0]
+                    user_port = user_ip_port[1]
+                    text = text + "name = {0} ip = {1} port {2}\n".format(user_name, user_ip, user_port)
+        messagebox.showinfo("Some info here !!", text)
 
     def menu(self):
         menubar = Menu(root)
@@ -226,23 +239,25 @@ class App(Thread):
                         if user_name == name:
                             self.old_channel = channel_name
                             self.list_channel[channel_name].remove(list_user)
-                            #self.send_user_list_channel("{0}:{1}".format(ip, port), channel_name)
             self.list_channel[new_channel] = ["{0}=>{1}:{2}".format(name, ip, port)]
+            self.update_list()
             for channel_name_list, user_list_list_list in self.list_channel.items():
+                print(channel_name_list)
                 if len(user_list_list_list) != 0:
                     for list_list_user in user_list_list_list:
+                        print(list_list_user)
                         user_name_ip_port = list_list_user.split("=>")
                         user_name = user_name_ip_port[0]
                         user_ip_port = user_name_ip_port[1].split(":")
                         user_ip = user_ip_port[0]
-                        user_port = user_ip_port[1]
-                        self.send_list_channel("{0}:{1}".format(ip, port))
+                        user_port = user_ip_port[1];
+                        self.send_list_channel("{0}:{1}".format(user_ip, user_port))
                 if channel_name_list == self.old_channel:
                     user_list_list = list_list_user.split("=>")
+                    print("old_channel = " + user_list_list[1])
                     self.send_user_list_channel(user_list_list[1], self.old_channel)
             msg = "command=n|{0}=>{1}".format("success", new_channel)
             self.send_msg(ip, port, msg)
-            self.update_list()
 
     def send_msg(self, ip, port, msg):
         msg_byte = bytes(msg.encode('utf-8'))
