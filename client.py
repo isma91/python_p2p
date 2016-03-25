@@ -7,8 +7,7 @@ import random
 from threading import Thread
 
 root = Tk()
-root.geometry("650x650")
-#root.geometry('{}x{}'.format(root.winfo_screenwidth(), root.winfo_screenheight()))
+root.geometry('{}x{}'.format(root.winfo_screenwidth(), root.winfo_screenheight()))
 root.wm_title("Python P2P Client Side")
 
 class Client(Thread):
