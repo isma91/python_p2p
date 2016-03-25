@@ -21,6 +21,13 @@ class Client(Thread):
         self.your_port = random.randint(1000, 9997)
 
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        try:
+            test_host = socket.gethostbyname("google.com")
+            test_s = socket.create_connection((test_host, 80), 2)
+        except:
+            messagebox.showerror("Some error here !!", "You don't have network connection, we can't have your own ip, we leaving")
+            self.quit()
+
         self.s.connect(('google.com', 80))
         self.your_ip = self.s.getsockname()[0]
         self.s.close()
@@ -131,7 +138,7 @@ class Client(Thread):
                 if data[10:] != "":
                     status_channel = data[10:].split("=>")
                     if status_channel[0] == "fail":
-                        self.showerror("Channel {0} already exist !!".format(status_channel[1]))
+                        self.display_error("Channel {0} already exist !!".format(status_channel[1]))
                     elif status_channel[0] == "success":
                         self.your_channel = status_channel[1]
                         self.display_info("Channel {0} created and switched to him !!".format(status_channel[1]))
