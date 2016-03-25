@@ -6,7 +6,7 @@ from threading import Thread
 import socket
 
 root = Tk()
-root.geometry("400x400")
+root.geometry('{}x{}'.format(int(root.winfo_screenwidth() / 2), int(root.winfo_screenheight() / 2)))
 root.wm_title("Python P2P Server Side")
 
 class App(Thread):
